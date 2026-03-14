@@ -206,14 +206,15 @@ export class ChromaticTunerComponent implements OnInit {
         this.currentEmoji = '';
         return;
     }
-    if (cents >= -10 && cents <= 10) {
+    if (cents == 0) this.currentEmoji = '';
+    else if (cents >= -10 && cents <= 10) {
         this.currentEmoji = 'happy';
-    } else if (Math.abs(cents) <= 30) {
+    } else if ((cents > 10 && cents <= 30) || (cents < -10 && cents >= -30)) {
         this.currentEmoji = 'confused';
-    } else {
+    } else if (cents > 30 || cents < -30) {
         this.currentEmoji = 'notHappy';
     }
-}
+    }
     /**
      * Starts the pitch detection process.
      * Clears the means array and subscribes to the pitch service.
