@@ -85,6 +85,10 @@ export class HomePage implements OnInit {
    * Indicates whether dark mode is enabled.
    */
   isDarkMode = false;
+
+  // Shared CSS hook so options-menu selects can be themed in light and dark mode.
+  instrumentSelectInterfaceOptions = { cssClass: 'settings-select-overlay' };
+  nomenclatureSelectInterfaceOptions = { cssClass: 'settings-select-overlay' };
   
   /**
    * The audio context used for playing sounds.
