@@ -728,6 +728,7 @@ export class HomePage implements OnInit {
     selectedIndex = options.findIndex(option => option.value === selectedValue);
 
     const picker = await this._picker.create({
+      cssClass: 'settings-picker-overlay',
       columns: [
         {
           name: type,
