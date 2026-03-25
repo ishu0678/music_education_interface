@@ -210,6 +210,11 @@ body.dark-theme {
     --background: #000000 !important;
     --ion-background-color: #000000 !important;
     --ion-text-color: #ffffff !important;
+    border-inline-end: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  ion-menu[menuId="settingsMenu"]::part(container) {
+    border-inline-end: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 
   ion-menu[menuId="settingsMenu"] ion-content {
@@ -220,7 +225,8 @@ body.dark-theme {
   ion-menu[menuId="settingsMenu"] ion-toolbar {
     --background: #000000 !important;
     --color: #ffffff !important;
-    --border-color: #1f1f1f !important;
+    --border-color: rgba(255, 255, 255, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   ion-menu[menuId="settingsMenu"] ion-list {
@@ -248,6 +254,18 @@ body.dark-theme {
     --background: #000000 !important;
     background: #000000 !important;
     color: #ffffff !important;
+  }
+
+  ion-popover::part(content),
+  ion-alert::part(wrapper) {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  }
+
+  ion-popover.settings-select-overlay::part(content),
+  ion-alert.settings-select-overlay::part(wrapper) {
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32) !important;
   }
 
   ion-popover.settings-select-overlay,
