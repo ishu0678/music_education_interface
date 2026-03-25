@@ -25,6 +25,27 @@
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
+ion-modal.note-modal {
+  --width: 90vw;
+  --max-width: 480px;
+  --height: auto;
+  --max-height: 80vh;
+  --border-radius: 14px;
+  --overflow: hidden;
+  --background: #ffffff;
+  --color: #000000;
+  --note-modal-bg: #ffffff;
+  --note-modal-text: #000000;
+
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+ion-modal {
+  --ion-backdrop-color: #000000;
+  --backdrop-opacity: 0.35;
+}
+
 ion-menu[menuId="settingsMenu"] {
   --background: #ffffff;
   --ion-background-color: #ffffff;
@@ -101,6 +122,32 @@ ion-picker.settings-picker-overlay {
   --color: #000000;
 }
 
+ion-picker.tempo-picker-overlay {
+  --background: #ffffff;
+  --color: #000000;
+}
+
+ion-picker.tempo-picker-overlay .picker-wrapper {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(90vw, 480px) !important;
+  max-width: 480px !important;
+  border-radius: 14px !important;
+}
+
+body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt {
+  color: #000000 !important;
+}
+
+body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt[aria-selected="true"],
+body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt.picker-opt-selected {
+  color: var(--ion-color-primary, #3880ff) !important;
+}
+
 body:not(.dark-theme) ion-picker.settings-picker-overlay .picker-opt {
   color: #000000 !important;
 }
@@ -109,6 +156,7 @@ body:not(.dark-theme) ion-picker.settings-picker-overlay .picker-opt[aria-select
 body:not(.dark-theme) ion-picker.settings-picker-overlay .picker-opt.picker-opt-selected {
   color: var(--ion-color-primary, #3880ff) !important;
 }
+
 // DARK MODE STYLES
 body.dark-theme {
   //turns main background to black and texts to white
@@ -313,4 +361,35 @@ body.dark-theme {
     --background: #111111 !important;
     --color: #ffffff !important;
   }
+}
+
+body.dark-theme ion-modal {
+  --ion-backdrop-color: #000000;
+  --backdrop-opacity: 0.55;
+  background-color: transparent !important;
+}
+
+body.dark-theme ion-modal.note-modal {
+  --background: #111111;
+  --color: #ffffff;
+  --note-modal-bg: #111111;
+  --note-modal-text: #ffffff;
+}
+
+body.dark-theme ion-picker.tempo-picker-overlay {
+  --background: #111111;
+  --color: #ffffff;
+}
+
+body.dark-theme ion-picker.tempo-picker-overlay .picker-opt {
+  color: #ffffff !important;
+}
+
+body.dark-theme ion-picker.tempo-picker-overlay .picker-opt[aria-selected="true"],
+body.dark-theme ion-picker.tempo-picker-overlay .picker-opt.picker-opt-selected {
+  color: var(--ion-color-primary, #4c8dff) !important;
+}
+
+body.dark-theme ion-modal.note-modal scroll-image-component img {
+  filter: invert(1) !important;
 }
