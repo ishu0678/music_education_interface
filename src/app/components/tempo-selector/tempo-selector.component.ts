@@ -184,6 +184,7 @@ export class TempoSelectorComponent implements OnInit {
 
     // Create the picker with the tempo options
     const picker = await this._picker.create({
+      cssClass: 'tempo-picker-overlay',
       columns: [
         {
           name: 'tempo',

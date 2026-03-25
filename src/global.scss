@@ -122,6 +122,20 @@ ion-picker.settings-picker-overlay {
   --color: #000000;
 }
 
+ion-picker.tempo-picker-overlay {
+  --background: #ffffff;
+  --color: #000000;
+}
+
+body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt {
+  color: #000000 !important;
+}
+
+body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt[aria-selected="true"],
+body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt.picker-opt-selected {
+  color: var(--ion-color-primary, #3880ff) !important;
+}
+
 body:not(.dark-theme) ion-picker.settings-picker-overlay .picker-opt {
   color: #000000 !important;
 }
@@ -220,6 +234,20 @@ body.dark-theme ion-modal.note-modal {
   --color: #ffffff;
   --note-modal-bg: #111111;
   --note-modal-text: #ffffff;
+}
+
+body.dark-theme ion-picker.tempo-picker-overlay {
+  --background: #111111;
+  --color: #ffffff;
+}
+
+body.dark-theme ion-picker.tempo-picker-overlay .picker-opt {
+  color: #ffffff !important;
+}
+
+body.dark-theme ion-picker.tempo-picker-overlay .picker-opt[aria-selected="true"],
+body.dark-theme ion-picker.tempo-picker-overlay .picker-opt.picker-opt-selected {
+  color: var(--ion-color-primary, #4c8dff) !important;
 }
 
 body.dark-theme ion-modal.note-modal scroll-image-component img {
