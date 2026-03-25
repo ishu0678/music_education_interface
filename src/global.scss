@@ -127,6 +127,18 @@ ion-picker.tempo-picker-overlay {
   --color: #000000;
 }
 
+ion-picker.tempo-picker-overlay .picker-wrapper {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(90vw, 480px) !important;
+  max-width: 480px !important;
+  border-radius: 14px !important;
+}
+
 body:not(.dark-theme) ion-picker.tempo-picker-overlay .picker-opt {
   color: #000000 !important;
 }
