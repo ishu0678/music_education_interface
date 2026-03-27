@@ -42,7 +42,8 @@
 
 @media screen and (orientation: landscape) {
     .trumpet-img {
-        height: min(100%, clamp(150px, 30vh, 260px));
+        height: min(100%, clamp(170px, 44vh, 320px));
+        max-height: min(100%, clamp(170px, 44vh, 320px));
         transform: none; 
     }
 }

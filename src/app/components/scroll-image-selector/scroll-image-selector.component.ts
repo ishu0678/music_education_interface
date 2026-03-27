@@ -43,6 +43,10 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
     `,
     styles: [`
     .container {
+      --note-preview-scale: 1;
+      --note-preview-inset-top: 0.45rem;
+      --note-preview-inset-inline: 0.75rem;
+      --note-preview-inset-bottom: 0.75rem;
       position: relative;
       height: 300px; /* Set the desired height */
       width: 100%; /* Set the desired width */
@@ -88,14 +92,25 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
       height: calc(100% - 2rem);
       width: 100%;
       background-color: var(--note-modal-bg, #ffffff);
-      img {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        width: 100%;
-        object-fit: contain;
-      }
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      padding:
+        var(--note-preview-inset-top)
+        var(--note-preview-inset-inline)
+        var(--note-preview-inset-bottom);
+    }
+
+    .image-container img {
+      height: 100%;
+      width: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      object-position: center;
+      transform: scale(var(--note-preview-scale));
+      transform-origin: center center;
     }
 
     @media screen and (max-width: 480px) {
@@ -112,6 +127,20 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
       .image-container {
         top: 1.75rem;
         height: calc(100% - 1.75rem);
+      }
+    }
+
+    @media screen and (orientation: landscape) and (max-height: 520px) {
+      .container {
+        --note-preview-scale: 0.88;
+        --note-preview-inset-top: 0.9rem;
+        --note-preview-inset-inline: 1.25rem;
+        --note-preview-inset-bottom: 1rem;
+      }
+
+      .scroll-hint {
+        top: 0.3rem;
+        font-size: 0.76rem;
       }
     }
     `],
@@ -168,6 +197,18 @@ export class ScrollImageComponent implements AfterViewInit, OnChanges {
      * Constructor for the ScrollImageComponent.
      */
     constructor() {}
+
+    private isCompactLandscape(): boolean {
+        return window.matchMedia('(orientation: landscape)').matches && window.innerHeight <= 520;
+    }
+
+    private getSelectionBounds(containerHeight: number) {
+        const topInsetRatio = this.isCompactLandscape() ? 0.15 : 0.08;
+        const bottomInsetRatio = this.isCompactLandscape() ? 0.12 : 0.06;
+        const top = containerHeight * topInsetRatio;
+        const height = Math.max(containerHeight * (1 - topInsetRatio - bottomInsetRatio), 1);
+        return { top, height };
+    }
 
     /**
      * Lifecycle hook that is called after the view has been initialized.
@@ -239,7 +280,7 @@ export class ScrollImageComponent implements AfterViewInit, OnChanges {
 
         console.log('scroll position', scrollPosition);
 
-        let idx = Math.floor(scrollPosition / this.scrollElementHeight);
+        let idx = Math.round(scrollPosition / this.scrollElementHeight);
         idx = Math.min(idx, this.images.length - 1);
         idx = Math.max(idx, 0);
 
@@ -271,9 +312,11 @@ export class ScrollImageComponent implements AfterViewInit, OnChanges {
         const element = this.scrollContainer.nativeElement;
         const containerHeight = element.clientHeight; // Height of the scrollable container
         const clickPosition = event.clientY - element.getBoundingClientRect().top; // Y-position relative to container
+        const { top, height } = this.getSelectionBounds(containerHeight);
+        const relativePosition = Math.max(0, Math.min(1, (clickPosition - top) / height));
 
-        // Invert the index calculation
-        const idx = Math.round((1 - clickPosition / containerHeight) * (this.images.length - 1));
+        // Map the visible staff height to the full note range, with higher taps selecting higher notes.
+        const idx = Math.round((1 - relativePosition) * (this.images.length - 1));
 
         // Ensure the index stays within valid bounds
         const boundedIndex = Math.max(0, Math.min(this.images.length - 1, idx));

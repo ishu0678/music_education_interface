@@ -14,6 +14,12 @@
     align-items: center;
     height: 100%;
     overflow: hidden;
+    box-sizing: border-box;
+    padding:
+      max(0.5rem, env(safe-area-inset-top))
+      max(0.5rem, env(safe-area-inset-right))
+      max(0.5rem, env(safe-area-inset-bottom))
+      max(0.5rem, env(safe-area-inset-left));
 }
 
 ion-content {
@@ -32,6 +38,7 @@ ion-content {
 
 .chromatic-tuner ::ng-deep .tuner {
     transform: scale(1.5);
+    transform-origin: center center;
     max-width: 100%;
     height: auto;
     margin: 0;
@@ -61,11 +68,25 @@ ion-content {
 
 @media (max-width: 480px) {
     .chromatic-tuner ::ng-deep .tuner {
-        margin-top: -20%;
+        margin-top: 0;
     }
 
     .chromatic-tuner ::ng-deep .numeric-values {
         height: 24px;
         line-height: 24px;
+    }
+}
+
+@media (max-width: 932px) and (orientation: landscape) {
+    .chromatic-tuner {
+        justify-content: center;
+        align-items: center;
+        padding-top: max(0.75rem, env(safe-area-inset-top));
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+
+    .chromatic-tuner ::ng-deep .tuner {
+        transform: scale(1.12);
+        margin-top: 0;
     }
 }
