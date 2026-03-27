@@ -33,18 +33,26 @@ import { RenderContext, Renderer } from 'vexflow';
   `,
   styles: [`
     :host {
-      display: block;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
       width: 100%;
       height: 100%;
+      min-height: 0;
     }
 
     .score-surface {
+      flex: 1 1 auto;
+      min-height: 0;
       width: 100%;
       background-color: white;
     }
 
     .score-note-name {
-      margin-top: 0.5rem;
+      flex: 0 0 auto;
+      min-height: 2rem;
+      margin-top: 0.15rem;
+      padding: 0 0 0.25rem;
       text-align: center;
       font-size: clamp(1.15rem, 2.2vw, 1.6rem);
       line-height: 1.1;
@@ -91,9 +99,10 @@ export class ScoreViewComponent implements AfterViewInit {
    */
   setSize() {
     const hostRect = this.hostElement.nativeElement.getBoundingClientRect();
+    const noteLabelReserve = 38;
     const size = {
       width: Math.max(hostRect.width, 220),
-      height: Math.max(hostRect.height, 120)
+      height: Math.max(hostRect.height - noteLabelReserve, 96)
     };
 
     this.size$.next(size);

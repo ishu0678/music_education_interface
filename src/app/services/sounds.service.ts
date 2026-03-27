@@ -48,6 +48,7 @@ export class SoundsService {
     private selectedInstrument: string = 'trumpet'; // Default instrument
     private preloadedNotes: Howl[] = []; // Array to hold preloaded note sounds
     private preloadVersion = 0; // Guards against overlapping async preload calls
+    private preloadTask: Promise<void> = Promise.resolve();
     private audioUnlocked = false;
     currentNote: number = 0; // Index of the current note
     volume: number = 1.0; // Volume level for sound playback
@@ -57,7 +58,7 @@ export class SoundsService {
      * @param {BeatService} _beat - The BeatService instance for synchronizing sounds with beats.
      */
     constructor(private _beat: BeatService) {
-        this.preloadSounds(); // Preload sounds on initialization
+        this.preloadTask = this.preloadSounds(); // Preload sounds on initialization
         this._beat.tick$.subscribe((beat) => this.playSounds(beat)); // Subscribe to beat ticks
     }
 
@@ -112,18 +113,48 @@ export class SoundsService {
 
         // Build note sounds off to the side so overlapping async preloads cannot
         // scramble the index-to-note mapping used during playback.
-        const loadedNotes: Howl[] = [];
-
-        for (const noteVariants of notesToLoad) {
-            const filePath = await this.resolveAudioPath(instrument, noteVariants);
-            loadedNotes.push(new Howl({ src: [filePath] }));
-        }
+        const loadedNotes = await Promise.all(
+            notesToLoad.map(async (noteVariants) => {
+                const filePath = await this.resolveAudioPath(instrument, noteVariants);
+                return this.createLoadedHowl(filePath);
+            })
+        );
 
         if (preloadVersion !== this.preloadVersion || instrument !== this.selectedInstrument) {
             return;
         }
 
         this.preloadedNotes = loadedNotes;
+    }
+
+    private createLoadedHowl(filePath: string): Promise<Howl> {
+        return new Promise((resolve) => {
+            let settled = false;
+            let howl!: Howl;
+
+            const finish = () => {
+                if (!settled) {
+                    settled = true;
+                    resolve(howl);
+                }
+            };
+
+            howl = new Howl({
+                src: [filePath],
+                preload: true,
+                onload: finish,
+                onloaderror: (_id, error) => {
+                    console.warn(`Unable to preload audio file: ${filePath}`, error);
+                    finish();
+                }
+            });
+
+            if (howl.state() === 'loaded') {
+                finish();
+            } else if (howl.state() === 'unloaded') {
+                howl.load();
+            }
+        });
     }
 
 /**
@@ -162,14 +193,19 @@ private async resolveAudioPath(instrument: string, noteVariants: string[]): Prom
      * @example
      * soundsService.setInstrument('clarinet');
      */
-    public setInstrument(instrument: string) {
+    public setInstrument(instrument: string): Promise<void> {
         if (this.selectedInstrument === instrument && this.preloadedNotes.length > 0) {
-            return;
+            return this.preloadTask;
         }
 
         this.selectedInstrument = instrument;
         this.preloadedNotes = [];
-        this.preloadSounds(); // Reload sounds for the new instrument
+        this.preloadTask = this.preloadSounds(); // Reload sounds for the new instrument
+        return this.preloadTask;
+    }
+
+    public async ensureSoundsReady() {
+        await this.preloadTask;
     }
 
     /**

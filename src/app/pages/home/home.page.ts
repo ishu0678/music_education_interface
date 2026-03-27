@@ -670,6 +670,9 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
       this.tabsService.setDisabled(false);
     } else {
       await this.soundsService.unlockAudio();
+      if (this.mode === this.selectedInstrument) {
+        await this.soundsService.ensureSoundsReady();
+      }
       this.start();
       this.tabsService.setDisabled(true);
     }
