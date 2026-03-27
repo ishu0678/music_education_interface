@@ -6,110 +6,13 @@
   See the LICENSE file for more details.
 -->
 
-<ion-menu contentId="main-content" menuId="settingsMenu">
-  <ion-header>
-    <ion-toolbar>
-      <ion-title>Options</ion-title>
-    </ion-toolbar>
-  </ion-header>
-  <ion-content class="ion-padding">
-    <ion-list>
-      <!-- Instrument Selection -->
-      <ion-item [disabled]="isPlaying()">
-        <ion-label>Select Instrument</ion-label>
-        <ion-select
-          (ionChange)="selectInstrument($event)"
-          mode="ios"
-          [value]="selectedInstrument"
-          interface="popover"
-          [interfaceOptions]="instrumentSelectInterfaceOptions"
-        >
-          <ion-select-option value="trumpet">
-            <ion-label>
-              Trumpet
-            </ion-label>
-          </ion-select-option>
-          <ion-select-option value="clarinet">
-            <ion-label>
-              Clarinet
-            </ion-label>
-          </ion-select-option>
-          <ion-select-option value="oboe">
-            <ion-label>
-              Oboe
-            </ion-label>
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
-
-    
-      
-      <!-- Display options based on selected instrument -->
-      <ng-container *ngIf="selectedInstrument">
-        <ion-item [disabled]="isPlaying()">
-          <ion-label>Mode</ion-label>
-          <ion-segment (ionChange)="switchMode($event)" mode="ios" [value]="mode">
-            <ion-segment-button *ngIf="selectedInstrument === 'trumpet'" value="trumpet">
-              <ion-label>TRUMPET</ion-label>
-            </ion-segment-button>
-            
-            <ion-segment-button *ngIf="selectedInstrument === 'clarinet'" value="clarinet">
-              <ion-label>CLARINET</ion-label>
-            </ion-segment-button>  
-            <ion-segment-button *ngIf="selectedInstrument === 'oboe'" value="oboe">
-              <ion-label>OBOE</ion-label>
-            </ion-segment-button>        
-            <ion-segment-button value="tuner">
-              <ion-label>TUNER</ion-label>
-            </ion-segment-button>
-          </ion-segment>
-        </ion-item>
-
-        <ion-item button (click)="openPicker('frequency')" [disabled]="isPlaying()">
-          <ion-label>A4</ion-label>
-          <ion-note slot="end">{{ refFrequencyValue$ }} Hz</ion-note>
-        </ion-item>
-
-        <ion-item>
-          <ion-toggle [checked]="useFlatsAndSharps" (ionChange)="switchUseFlatsAndSharps($event)" [disabled]="isPlaying()">
-            <b>&flat; &amp; &sharp;</b>
-          </ion-toggle>
-        </ion-item>
-        <ion-item [disabled]="isPlaying()">
-          <ion-label>Nomenclature</ion-label>
-          <ion-select
-            (ionChange)=" changeLanguage ($event)"
-            value="{{language}}"
-            interface="alert"
-            [interfaceOptions]="nomenclatureSelectInterfaceOptions"
-          >
-          <ion-select-option value="en">C, D, E</ion-select-option> 
-          <ion-select-option value="it">Do, Re, Mi</ion-select-option>
-          </ion-select> 
-        </ion-item>
-        <ion-item>
-          <ion-toggle [checked]="useDynamics" (ionChange)="switchUseDynamics($event)" [disabled]="isPlaying()">
-            Dynamics
-          </ion-toggle>
-        </ion-item>
-        <ion-item>
-          <ion-toggle [checked]="isDarkMode" (ionChange)="switchDarkMode($event)">
-            Dark Mode
-          </ion-toggle>
-        </ion-item>
-      </ng-container>
-    </ion-list>
-  </ion-content>
-</ion-menu>
-
-
 <div class="ion-page" id="main-content">
   <ion-content [fullscreen]="true">
     <div id="container">
-      <div class="wrapper" id="wrapper">
+      <div class="wrapper" id="wrapper" [class.is-playing]="isPlaying()" [class.is-idle]="!isPlaying()">
         <div class="top-middle-container">
           <div class="top" [ngClass]="!isPlaying()?'landscape-d-none':''">
-            <div class="metronome">
+            <div class="metronome status-panel">
               <div class="metronome-bullet">
                 <h1 id="metronome-label" *ngIf="beat$|async as beat">
                   {{ beat.beat >= 0 ? (beat.beat + 1): '&nbsp;'}}
@@ -118,23 +21,23 @@
               </div>
             </div>
             <ng-container *ngIf="mode === 'tuner'">
-              <div class="chromatic-tuner">
+              <div class="chromatic-tuner visual-panel">
                 <chromatic-tuner [refFrequencyValue$]="refFrequencyValue$"></chromatic-tuner>
               </div>
             </ng-container>
             <ng-container *ngIf="selectedInstrument === 'trumpet' && mode === 'trumpet'">
-              <div class="trumpet">
+              <div class="trumpet visual-panel">
                 <trumpet-diagram [trumpetButtons]="trumpetBtns"></trumpet-diagram>
               </div>
             </ng-container>
             <ng-container *ngIf="selectedInstrument === 'clarinet' && mode === 'clarinet'">
-              <div class="clarinet">
+              <div class="clarinet visual-panel">
                
                 <img [src]="clarinetPosition" alt="Clarinet Position" />
               </div>
             </ng-container>
             <ng-container *ngIf="selectedInstrument === 'oboe' && mode === 'oboe'">
-              <div class="oboe">
+              <div class="oboe visual-panel">
                
                 <img [src]="oboePosition" alt="Oboe Position" />
               </div>
@@ -179,6 +82,11 @@
               ></note-selector>
             </div>
 
+          </div>
+
+          <div class="ios-audio-hint" *ngIf="showIOSWebAudioHint">
+            <span>On iPhone/iPad browsers, audio may be muted when the side switch is set to Silent.</span>
+            <button type="button" class="ios-audio-hint-dismiss" (click)="dismissIOSWebAudioHint()">Dismiss</button>
           </div>
         </div>
       </div>

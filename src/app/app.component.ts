@@ -10,7 +10,6 @@ import { AfterViewInit, Component } from '@angular/core';
 import { IonicModule, Platform } from '@ionic/angular';
 import { StatusBar } from '@capacitor/status-bar';
 import { Microphone, PermissionStatus } from '@mozartec/capacitor-microphone';
-import { PitchService } from './services/pitch.service';
 import { KeepAwake } from '@capacitor-community/keep-awake';
 
 @Component({
@@ -27,9 +26,8 @@ export class AppComponent implements AfterViewInit {
   /**
    * Creates an instance of AppComponent.
    * @param {Platform} platform - The platform service to check the current platform.
-   * @param {PitchService} pitchService - The service for pitch detection.
    */
-  constructor(private platform: Platform, private pitchService: PitchService) {
+  constructor(private platform: Platform) {
     StatusBar.show(); // Show the status bar
   }
 
@@ -56,7 +54,5 @@ export class AppComponent implements AfterViewInit {
       }
     }
 
-    // start the pitch monitoring service
-    this.pitchService.connect()
   }
 }

@@ -26,6 +26,7 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
     selector: 'scroll-image-component',
     template: `
     <div class="container">
+      <div class="scroll-hint">Drag ↑ ↓</div>
       <div class="image-container">
         <img [src]="image">
       </div>
@@ -45,17 +46,33 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
       position: relative;
       height: 300px; /* Set the desired height */
       width: 100%; /* Set the desired width */
-            background-color: var(--note-modal-bg, #ffffff);
-            color: var(--note-modal-text, #000000);
+      padding-top: 2rem;
+      background-color: var(--note-modal-bg, #ffffff);
+      color: var(--note-modal-text, #000000);
       overscroll-behavior-y: contain;
+      box-sizing: border-box;
+    }
+
+    .scroll-hint {
+      position: absolute;
+      top: 0.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-align: center;
+      white-space: nowrap;
+      color: var(--note-modal-text, #000000);
     }
 
     .scrollable {
       position: absolute;
-      top: 0;
+      top: 2rem;
       left: 0;
       overflow-y: scroll;
-      height: 100%;
+      height: calc(100% - 2rem);
       width: 100%;
       scroll-snap-type: y proximity;
     }
@@ -66,11 +83,11 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
 
     .image-container {
       position: absolute;
-      top: 0;
+      top: 2rem;
       left: 0;
-      height: 100%;
+      height: calc(100% - 2rem);
       width: 100%;
-            background-color: var(--note-modal-bg, #ffffff);
+      background-color: var(--note-modal-bg, #ffffff);
       img {
         position: absolute;
         top: 0;
@@ -78,6 +95,23 @@ const TICK_SOUND = new Howl({ src: ['assets/sounds/tick_weak.wav'] });
         height: 100%;
         width: 100%;
         object-fit: contain;
+      }
+    }
+
+    @media screen and (max-width: 480px) {
+      .container {
+        padding-top: 1.75rem;
+      }
+
+      .scroll-hint {
+        top: 0.35rem;
+        font-size: 0.78rem;
+      }
+
+      .scrollable,
+      .image-container {
+        top: 1.75rem;
+        height: calc(100% - 1.75rem);
       }
     }
     `],
@@ -257,4 +291,3 @@ export class ScrollImageComponent implements AfterViewInit, OnChanges {
         element.scrollTo({ top: snapTo, behavior: 'smooth' });
     }
 }
-

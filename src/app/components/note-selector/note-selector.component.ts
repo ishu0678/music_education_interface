@@ -7,8 +7,8 @@
  */
 
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
-import { IonicModule } from '@ionic/angular';
+import { Component, EventEmitter, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { IonModal, IonicModule } from '@ionic/angular';
 import { TRUMPET_NOTES, CLARINET_NOTES,OBOE_NOTES } from 'src/app/constants';
 import { ScrollImageComponent } from '../scroll-image-selector/scroll-image-selector.component';
 
@@ -28,16 +28,24 @@ import { ScrollImageComponent } from '../scroll-image-selector/scroll-image-sele
           <img id="note-image-id" [src]="getNoteImg(note)">
         </div>
         <ion-modal [trigger]="_id"
+            #noteModal
             [canDismiss]="canDismiss"
-          cssClass="note-modal"
+            cssClass="note-modal"
+            (willPresent)="resetDraftNote()"
             [handle]="false"
             >
             <ng-template>
-              <scroll-image-component
-                [images]="noteImages"
-                [index]="note"
-                (indexChange)="change.emit($event)"
-              ></scroll-image-component>
+              <div class="modal-shell">
+                <div class="modal-toolbar">
+                  <ion-button fill="clear" size="small" (click)="cancelSelection()">Cancel</ion-button>
+                  <ion-button fill="clear" size="small" (click)="confirmSelection()">Confirm</ion-button>
+                </div>
+                <scroll-image-component
+                  [images]="noteImages"
+                  [index]="draftNote"
+                  (indexChange)="draftNote = $event"
+                ></scroll-image-component>
+              </div>
           </ng-template>
         </ion-modal>
       </div>
@@ -86,14 +94,52 @@ import { ScrollImageComponent } from '../scroll-image-selector/scroll-image-sele
     max-height:250px;
   }
 
+  .modal-shell {
+    background-color: var(--note-modal-bg, #ffffff);
+    color: var(--note-modal-text, #000000);
+  }
+
+  .modal-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .modal-toolbar ion-button {
+    margin: 0;
+    --padding-start: 0.4rem;
+    --padding-end: 0.4rem;
+    font-weight: 500;
+  }
+
   @media screen and (max-width: 480px) {
     .simulate-input {
-      width: 80%;
-      max-width: 200px;
+      width: 100%;
+      max-width: none;
+      max-height: none;
+      aspect-ratio: 1 / 1;
+      padding: 6px;
     }
 
     .title-section-wrapper {
-      font-size: 0.9em;
+      font-size: 0.95rem;
+    }
+
+    .note-image {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      padding: 0.35rem;
+    }
+
+    #note-image-id {
+      width: 100%;
+    }
+
+    .modal-toolbar {
+      padding: 0.25rem 0.35rem;
     }
   }
 @media screen and (orientation: landscape) {
@@ -153,8 +199,10 @@ import { ScrollImageComponent } from '../scroll-image-selector/scroll-image-sele
   ]
 })
 export class NoteSelectorComponent implements OnInit {
+  @ViewChild('noteModal') noteModal?: IonModal;
   private _selectedInstrument: string = 'trumpet'; // Default instrument
   _id = `note-selector-${Math.round(Math.random() * 100)}`;
+  draftNote: number = 0;
   
   /**
    * The label for the note selector.
@@ -199,6 +247,7 @@ export class NoteSelectorComponent implements OnInit {
    */
   ngOnInit() {
     this.updateNoteImages(); // Initialize note images based on the default instrument
+    this.draftNote = this.note;
   }
 
   /**
@@ -229,7 +278,22 @@ export class NoteSelectorComponent implements OnInit {
   getNoteImg(note: number): string {
     return note >= 0 && note < this.noteImages.length ? this.noteImages[note] : '';
   }
-  
+
+  resetDraftNote() {
+    this.draftNote = this.note;
+  }
+
+  async cancelSelection() {
+    this.draftNote = this.note;
+    await this.noteModal?.dismiss(undefined, 'cancel');
+  }
+
+  async confirmSelection() {
+    if (this.draftNote !== this.note) {
+      this.change.emit(this.draftNote);
+    }
+    await this.noteModal?.dismiss(undefined, 'confirm');
+  }
 
   /**
    * Determines whether the modal can be dismissed or not.
@@ -241,4 +305,3 @@ export class NoteSelectorComponent implements OnInit {
     return role !== 'gesture';
   }
 }
-

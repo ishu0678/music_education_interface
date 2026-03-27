@@ -5,13 +5,15 @@
  * Licensed under the GNU Affero General Public License v3.0.
  * See the LICENSE file for more details.
  */
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { AlertController, IonicModule, PickerController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { Capacitor } from '@capacitor/core';
 import { Mute } from '@capgo/capacitor-mute';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faCircleChevronDown, faCircleChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { Howler } from 'howler';
 import { range } from 'lodash';
 import { Observable, interval, tap } from 'rxjs';
 import { ChromaticTunerComponent } from 'src/app/components/chromatic-tuner/chromatic-tuner.component';
@@ -46,8 +48,11 @@ import { BeatService } from '../../services/beat.service';
 /**
  * HomePage class represents the home page of the music education interface.
  */
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(ChromaticTunerComponent) private chromaticTuner!: ChromaticTunerComponent;
+  private resizeObserver: ResizeObserver | null = null;
+  private readonly boundScaleContent = () => this.scaleContent();
+  private readonly boundRefreshSettings = () => this.handleSettingsUpdated();
 
   /**
    * Indicates the mode - tuner or trumpet.
@@ -180,6 +185,8 @@ export class HomePage implements OnInit {
    */
   refFrequencyValue$!: number;
 
+  showIOSWebAudioHint = false;
+
   /**
    * An object to collect all the notes played.
    */
@@ -248,7 +255,18 @@ export class HomePage implements OnInit {
     this.refFrequencyService.getRefFrequency().subscribe(value => {
       this.refFrequencyValue$ = value;
     });
+    this.showIOSWebAudioHint = this.isIOSWebBrowser()
+      && sessionStorage.getItem('ios-web-audio-hint-dismissed') !== 'true';
     this.loadStateFromLocalStorage();
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('resize', this.boundScaleContent);
+    window.removeEventListener('orientationchange', this.boundScaleContent);
+    window.visualViewport?.removeEventListener('resize', this.boundScaleContent);
+    window.removeEventListener('mei-settings-updated', this.boundRefreshSettings);
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
   }
 
   /**
@@ -258,6 +276,7 @@ export class HomePage implements OnInit {
   private loadStateFromLocalStorage() {
     const savedMode = localStorage.getItem('mode');
     const savedInstrument = localStorage.getItem('selectedInstrument');
+    const savedLanguage = localStorage.getItem('language');
 
     // Load the selected instrument and its settings
     if (savedInstrument) {
@@ -279,9 +298,16 @@ export class HomePage implements OnInit {
     // Load common settings
     this.useFlatsAndSharps = this.retrieveAndParseFromLocalStorage('useFlatsAndSharps', false);
     this.useDynamics = this.retrieveAndParseFromLocalStorage('useDynamics', false);
+    this.language = savedLanguage ?? 'en';
     // dark mode state load & apply
     this.isDarkMode = this.retrieveAndParseFromLocalStorage('isDarkMode', false);
     this.applyDarkMode(this.isDarkMode);
+  }
+
+  private handleSettingsUpdated() {
+    this.loadStateFromLocalStorage();
+    this.noteImages = this.getNoteImages();
+    this.queueScaleContent();
   }
   
   /**
@@ -369,6 +395,7 @@ export class HomePage implements OnInit {
 
     // Save the current state to local storage
     this.saveCurrentStateToLocalStorage();
+    this.queueScaleContent();
   }
 
   /**
@@ -407,6 +434,21 @@ export class HomePage implements OnInit {
     } catch (e) {}
   }
 
+  private isIOSWebBrowser(): boolean {
+    if (Capacitor.isNativePlatform()) {
+      return false;
+    }
+
+    const userAgent = navigator.userAgent || navigator.vendor || '';
+    return /iPad|iPhone|iPod/.test(userAgent)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
+  dismissIOSWebAudioHint() {
+    this.showIOSWebAudioHint = false;
+    sessionStorage.setItem('ios-web-audio-hint-dismissed', 'true');
+  }
+
   /**
    * Switches the mode of the application.
    * @param event - The event containing the new mode.
@@ -419,6 +461,7 @@ export class HomePage implements OnInit {
     this.mode = event.detail.value;
     this.saveCurrentStateToLocalStorage();
     console.log(event);
+    this.queueScaleContent();
   }
 
   /**
@@ -621,14 +664,16 @@ export class HomePage implements OnInit {
    * If the tempo is currently stopped, it will start it.
    * @returns void
    */
-  startStop() {
+  async startStop() {
     if (this._tempo.playing$.value) {
       this.stop();
       this.tabsService.setDisabled(false);
     } else {
+      await this.soundsService.unlockAudio();
       this.start();
       this.tabsService.setDisabled(true);
     }
+    this.queueScaleContent();
   }
 
   /**
@@ -796,23 +841,43 @@ export class HomePage implements OnInit {
    * @returns void
    */
   scaleContent() {
-    const container = document.getElementById('wrapper');
+    const wrapper = document.getElementById('wrapper');
+    const host = document.getElementById('container');
 
-    const baseWidth = container!.offsetWidth;
-    const baseHeight = container!.offsetHeight;
+    if (!wrapper || !host) {
+      return;
+    }
 
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    wrapper.style.transform = 'scale(1)';
+    wrapper.style.left = '0px';
+    wrapper.style.top = '0px';
 
-    const scaleX = viewportWidth / baseWidth;
-    const scaleY = viewportHeight / baseHeight * 0.8;
+    const baseWidth = Math.max(wrapper.scrollWidth, wrapper.offsetWidth);
+    const baseHeight = Math.max(wrapper.scrollHeight, wrapper.offsetHeight);
+    const hostRect = host.getBoundingClientRect();
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const availableWidth = Math.max(0, Math.min(hostRect.width, viewportWidth));
+    const availableHeight = Math.max(0, Math.min(hostRect.height, viewportHeight));
 
-    let scale = Math.min(scaleX, scaleY);
+    if (!baseWidth || !baseHeight || !availableWidth || !availableHeight) {
+      return;
+    }
 
-    container!.style.transform = `scale(${scale})`;
-    container!.style.position = 'absolute';
-    container!.style.left = `calc(50% - ${baseWidth * scale / 2}px)`;
-    container!.style.top = `calc(50% - ${baseHeight * scale / 2}px)`;
+    const scaleX = availableWidth / baseWidth;
+    const scaleY = availableHeight / baseHeight;
+    const scale = Math.min(scaleX, scaleY, 1);
+
+    wrapper.style.transform = `scale(${scale})`;
+    wrapper.style.position = 'absolute';
+    wrapper.style.left = `${Math.max((availableWidth - baseWidth * scale) / 2, 0)}px`;
+    wrapper.style.top = `${Math.max((availableHeight - baseHeight * scale) / 2, 0)}px`;
+  }
+
+  private queueScaleContent() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.scaleContent());
+    });
   }
 
   /**
@@ -820,10 +885,23 @@ export class HomePage implements OnInit {
    * @returns void
    */
   ngAfterViewInit() {
-    window.addEventListener('resize', () => this.scaleContent());
-    window.addEventListener('load', () => this.scaleContent());
+    window.addEventListener('resize', this.boundScaleContent);
+    window.addEventListener('orientationchange', this.boundScaleContent);
+    window.visualViewport?.addEventListener('resize', this.boundScaleContent);
+    window.addEventListener('mei-settings-updated', this.boundRefreshSettings);
 
+    const host = document.getElementById('container');
+    const wrapper = document.getElementById('wrapper');
+
+    if (typeof ResizeObserver !== 'undefined' && host && wrapper) {
+      this.resizeObserver = new ResizeObserver(() => this.scaleContent());
+      this.resizeObserver.observe(host);
+      this.resizeObserver.observe(wrapper);
+    }
+
+    this.queueScaleContent();
     setTimeout(() => this.scaleContent(), 250);
+    setTimeout(() => this.scaleContent(), 800);
   }
   changeLanguage(event: any) {
     this.language = event.detail.value; // Update the language based on the selected value
@@ -831,4 +909,3 @@ export class HomePage implements OnInit {
     console.log('Language:', this.language);
   }
 }
-

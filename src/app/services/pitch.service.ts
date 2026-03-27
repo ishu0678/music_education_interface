@@ -35,13 +35,16 @@ export class PitchService {
     private isStopped = false;
     private accumNode!: AudioWorkletNode;
     private analyser!: AnalyserNode;
+    private sourceNode!: MediaStreamAudioSourceNode;
     private wasmModule: any;
     private ptr: any;
     private ptrPitches: any;
     private stream: MediaStream | undefined;
+    private primedStream: MediaStream | null = null;
     private nAccumulated = 0;
     private n_pitches!: number;
     private audioContext: AudioContext | null = null;
+    private connectPromise: Promise<void> | null = null;
 
     /**
      * Observable that emits the detected pitch.
@@ -58,35 +61,89 @@ export class PitchService {
 
     ) { }
 
+    async primeMicrophoneAccess() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+            throw new Error('Microphone access is not available in this browser.');
+        }
+
+        try {
+            if (this.stream?.active || this.primedStream?.active) {
+                return;
+            }
+
+            if (!this.audioContext || this.audioContext.state === 'closed') {
+                this.audioContext = new AudioContext();
+            }
+
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+
+            this.primedStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (error) {
+            console.warn('Unable to prime microphone access', error);
+            throw error;
+        }
+    }
+
     async connect() {
-        this.audioContext = new AudioContext();
+        if (this.connectPromise) {
+            return this.connectPromise;
+        }
+        if (this.audioContext && this.stream?.active && this.accumNode) {
+            return;
+        }
+
+        this.connectPromise = this.initializeConnection();
+        try {
+            await this.connectPromise;
+        } finally {
+            this.connectPromise = null;
+        }
+    }
+
+    private async initializeConnection() {
+        this.isStopped = false;
+        this.nAccumulated = 0;
+
+        if (!this.audioContext || this.audioContext.state === 'closed') {
+            this.audioContext = new AudioContext();
+        }
+
+        if (this.audioContext.state === 'suspended') {
+            await this.audioContext.resume();
+        }
+
         console.log("Sample rate:", this.audioContext.sampleRate);
-        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        this.stream = this.primedStream?.active
+            ? this.primedStream
+            : await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.primedStream = null;
+
         this.wasmModule = await pitchlite();
 
         this.n_pitches = this.wasmModule._pitchliteInit(
             bigWindow,
             smallWindow,
-            this.audioContext.sampleRate, // use the actual sample rate of the audio context
-            useYin, // use yin
-            minPitch, // mpm low pitch cutoff
+            this.audioContext.sampleRate,
+            useYin,
+            minPitch,
         );
 
-        // Create WASM views of the buffers, do it once and reuse
         this.ptr = this.wasmModule._malloc(bigWindow * Float32Array.BYTES_PER_ELEMENT);
         this.ptrPitches = this.wasmModule._malloc(this.n_pitches * Float32Array.BYTES_PER_ELEMENT);
 
         await this.audioContext.audioWorklet.addModule('assets/audio-accumulator.js');
-        // Create an instance of your custom AudioWorkletNode
+
         this.accumNode = new AudioWorkletNode(this.audioContext, 'audio-accumulator', {
             numberOfInputs: 1,
             numberOfOutputs: 1,
             outputChannelCount: [2],
         });
 
-        // Connect the microphone stream to the processor
-        const source = this.audioContext.createMediaStreamSource(this.stream);
-        source.connect(this.accumNode);
+        this.sourceNode = this.audioContext.createMediaStreamSource(this.stream);
+        this.sourceNode.connect(this.accumNode);
 
         this.analyser = this.audioContext.createAnalyser();
         this.analyser.fftSize = 2048;
@@ -96,37 +153,21 @@ export class PitchService {
         const gainNode = this.audioContext.createGain();
         gainNode.gain.value = 0.0;
         this.analyser.connect(gainNode);
-
         gainNode.connect(this.audioContext.destination);
 
         this.accumNode.port.onmessage = (event) => {
-            // Check if the "stop" button has been clicked
-            // event.data contains 128 samples of audio data from
-            // the microphone through the AudioWorkletProcessor
-
-            // scale event.data.data up to [-1, 1]
             const scaledData = scaleArrayToMinusOneToOne(event.data.data);
-
-            // Calculate the offset in bytes based on nAccumulated
             const offset = (this.nAccumulated * workletChunkSize) * Float32Array.BYTES_PER_ELEMENT;
 
-            // store latest 128 samples into the WASM buffer
             this.wasmModule.HEAPF32.set(scaledData, (this.ptr + offset) / Float32Array.BYTES_PER_ELEMENT);
             this.nAccumulated += 1;
 
-            // Check if we have enough data to calculate the pitch
             if (this.nAccumulated >= (bigWindow / workletChunkSize)) {
-                this.nAccumulated = 0; // reset the accumulator
-
-                // Call the WASM function
+                this.nAccumulated = 0;
                 this.wasmModule._pitchlitePitches(this.ptr, this.ptrPitches);
 
-                // copy the results back into a JS array
-                let wasmArrayPitches = new Float32Array(this.wasmModule.HEAPF32.buffer, this.ptrPitches, this.n_pitches);
-                // Do something with the pitch
+                const wasmArrayPitches = new Float32Array(this.wasmModule.HEAPF32.buffer, this.ptrPitches, this.n_pitches);
                 this.pitch$.next(wasmArrayPitches[this.n_pitches - 1]);
-
-                // clear the entire buffer
                 this.wasmModule._memset(this.ptr, 0, bigWindow * Float32Array.BYTES_PER_ELEMENT);
             }
         };
@@ -142,21 +183,26 @@ export class PitchService {
         this.isStopped = true;
 
         if (this.accumNode) {
-            // disconnect the audio worklet node
             this.accumNode.disconnect();
         }
 
+        if (this.sourceNode) {
+            this.sourceNode.disconnect();
+        }
+
         if (this.stream) {
-            // stop tracks
             this.stream.getTracks().forEach(function (track: any) {
                 console.log('Stopping stream');
-                // Here you can free the allocated memory
                 track.stop();
             });
         }
 
+        if (this.primedStream) {
+            this.primedStream.getTracks().forEach(track => track.stop());
+            this.primedStream = null;
+        }
+
         if (this.wasmModule) {
-            // cleanup
             this.wasmModule._free(this.ptrPitches);
             this.wasmModule._free(this.ptr);
         }
@@ -165,6 +211,11 @@ export class PitchService {
             this.audioContext.close();
             this.audioContext = null;
         }
+
+        this.stream = undefined;
+        this.ptr = null;
+        this.ptrPitches = null;
+        this.wasmModule = null;
+        this.nAccumulated = 0;
     }
 }
-

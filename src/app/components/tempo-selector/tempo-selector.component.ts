@@ -25,39 +25,62 @@ import { MAXTEMPO, MINTEMPO } from 'src/app/constants';
   <div class="simulate-input">
   <div class="title-section-wrapper">Tempo:</div>
   <div class="tempo" (click)="openPicker()">
-    <h1>
-        &#9833;=
+    <h1 class="tempo-display">
+        <span class="tempo-mark">&#9833;=</span>
         <span id="tempo">{{ tempo }} bpm</span>
     </h1>
   </div>
   </div>
   `,
   styles: [`
-  .tempo h1 {
-    font-size: 1em;
+  .tempo-display {
+    font-size: clamp(1.35rem, 2.2vw + 0.55rem, 2.4rem);
     text-align: center;
-    margin:10px 10px 10px 10px;
+    margin: 0;
+    line-height: 1.15;
+    font-weight: 600;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.35em;
+    flex-wrap: wrap;
   }
+
+  .tempo-mark {
+    font-size: 1.05em;
+  }
+
+  #tempo {
+    font-variant-numeric: tabular-nums;
+  }
+
   .title-section-wrapper{
-    font-size: 1em;
+    font-size: clamp(1.1rem, 1.4vw + 0.65rem, 1.9rem);
+    line-height: 1.1;
+    font-weight: 500;
+    text-align: center;
   }
+
   .tempo {
     flex-grow: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
     height: 100%; /* Fill container */
     cursor: pointer;
   }
+
   .simulate-input {
     background-color: #fff;
     border: 2px solid #009dda;
     border-radius: 6px;
-    padding: 8px 10px;
+    padding: clamp(12px, 1.8vw, 20px);
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: clamp(0.75rem, 1.4vw, 1.4rem);
+    justify-content: center;
     align-items: center;
     color: black;
     width: 90%;
@@ -69,12 +92,20 @@ import { MAXTEMPO, MINTEMPO } from 'src/app/constants';
 
   @media screen and (max-width: 480px) {
     .simulate-input {
-      width: 80%;
-      max-width: 200px;
+      width: 100%;
+      max-width: none;
+      aspect-ratio: 1 / 1;
+      padding: 8px;
+      gap: 0.5rem;
     }
 
     .title-section-wrapper {
-      font-size: 0.9em;
+      font-size: 0.95rem;
+    }
+
+    .tempo-display {
+      font-size: clamp(1rem, 2.4vw + 0.55rem, 1.45rem);
+      gap: 0.2em;
     }
   }
 
@@ -82,7 +113,6 @@ import { MAXTEMPO, MINTEMPO } from 'src/app/constants';
     .simulate-input {
       width: 85%;
       max-width: 250px;
-      padding: 10px;
     }
   }
 
@@ -91,10 +121,6 @@ import { MAXTEMPO, MINTEMPO } from 'src/app/constants';
       width: 80%;
       max-width: 230px;
     }
-
-    .title-section-wrapper {
-      font-size: 1.1em;
-    }
   }
 
   @media screen and (min-width: 900px) {
@@ -102,20 +128,12 @@ import { MAXTEMPO, MINTEMPO } from 'src/app/constants';
       width: 80%;
       max-width: 300px;
     }
-
-    .title-section-wrapper {
-      font-size: 1.1em;
-    }
   }
 
   @media screen and (min-width: 1200px) {
     .simulate-input {
       width: 68%;
       max-width: 600px;
-    }
-
-    .title-section-wrapper {
-      font-size: 1.5em;
     }
   }
   `],

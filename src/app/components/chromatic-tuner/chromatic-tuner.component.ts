@@ -237,9 +237,9 @@ export class ChromaticTunerComponent implements OnInit, OnDestroy {
      * Starts the pitch detection process.
      * Clears the means array and subscribes to the pitch service.
      */
-    start() {
+    async start() {
         this.meansArray = [];  // Clear the array when starting
-        this.pitchService.connect();
+        await this.pitchService.connect();
         this.pitchSubscription = this.pitchService.pitch$.subscribe(pitch => {
             this.pitchSubject.next(pitch);
         });
@@ -306,4 +306,3 @@ export class ChromaticTunerComponent implements OnInit, OnDestroy {
         this.scaleContent();
     }
 }
-

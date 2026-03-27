@@ -68,9 +68,9 @@ export class PitchComponent implements OnInit, ViewDidEnter, ViewDidLeave {
    * Starts the chromatic tuner and sets detecting to true.
    * @returns void
    */
-  ionViewDidEnter() {
+  async ionViewDidEnter() {
     this.detecting = true;
-    this.chromaticTuner.start();
+    await this.chromaticTuner.start();
     // Optionally disable tabs while detecting
     // this.tabsService.setDisabled(true);
   }
