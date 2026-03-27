@@ -26,12 +26,30 @@ import { RenderContext, Renderer } from 'vexflow';
 @Component({
   selector: 'score-view',
   template: `
-    <div id="score" style="background-color: white; transform: scale(0.9);"></div>
-    <div *ngIf="noteNames.length > 0" style="margin-top: 10px;">
+    <div id="score" class="score-surface"></div>
+    <div *ngIf="noteNames.length > 0" class="score-note-name">
       <strong>{{ noteNames[1] }}</strong> 
     </div>
   `,
-  styleUrls: [],
+  styles: [`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .score-surface {
+      width: 100%;
+      background-color: white;
+    }
+
+    .score-note-name {
+      margin-top: 0.5rem;
+      text-align: center;
+      font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+      line-height: 1.1;
+    }
+  `],
   standalone: true,
   imports: [CommonModule]
 })
@@ -72,9 +90,10 @@ export class ScoreViewComponent implements AfterViewInit {
    * is displayed correctly in the available space.
    */
   setSize() {
+    const hostRect = this.hostElement.nativeElement.getBoundingClientRect();
     const size = {
-      width: this.hostElement.nativeElement.getBoundingClientRect().width+120,
-      height: this.hostElement.nativeElement.getBoundingClientRect().height+53
+      width: Math.max(hostRect.width, 220),
+      height: Math.max(hostRect.height, 120)
     };
 
     this.size$.next(size);
@@ -302,4 +321,3 @@ observer.observe(div, { childList: true, subtree: true });
 
   }
 }
-

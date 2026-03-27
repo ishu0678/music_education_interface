@@ -9,7 +9,7 @@
 import { Injectable } from "@angular/core";
 import { BeatService } from "./beat.service";
 import { AppBeat } from '../models/appbeat.types';
-import { Howl } from "howler";
+import { Howl, Howler } from "howler";
 import { TRUMPET_NOTES, CLARINET_NOTES,OBOE_NOTES} from "../constants";
 
 // Predefined beat sounds
@@ -48,6 +48,7 @@ export class SoundsService {
     private selectedInstrument: string = 'trumpet'; // Default instrument
     private preloadedNotes: Howl[] = []; // Array to hold preloaded note sounds
     private preloadVersion = 0; // Guards against overlapping async preload calls
+    private audioUnlocked = false;
     currentNote: number = 0; // Index of the current note
     volume: number = 1.0; // Volume level for sound playback
 
@@ -169,6 +170,35 @@ private async resolveAudioPath(instrument: string, noteVariants: string[]): Prom
         this.selectedInstrument = instrument;
         this.preloadedNotes = [];
         this.preloadSounds(); // Reload sounds for the new instrument
+    }
+
+    /**
+     * Unlocks audio playback after a direct user gesture.
+     * This is especially important on iOS Safari, which can keep
+     * Web Audio suspended until the first trusted interaction.
+     */
+    async unlockAudio() {
+        if (this.audioUnlocked) {
+            return;
+        }
+
+        try {
+            if (Howler.ctx?.state === 'suspended') {
+                await Howler.ctx.resume();
+            }
+
+            if (Howler.ctx) {
+                const buffer = Howler.ctx.createBuffer(1, 1, 22050);
+                const source = Howler.ctx.createBufferSource();
+                source.buffer = buffer;
+                source.connect(Howler.ctx.destination);
+                source.start(0);
+            }
+
+            this.audioUnlocked = true;
+        } catch (error) {
+            console.warn('Unable to unlock audio playback', error);
+        }
     }
 
     /**
